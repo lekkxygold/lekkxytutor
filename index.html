@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>lekkxygold tutor | GitHub + Supabase Video</title>
+  <title>lekkxygold tutor | GitHub + Supabase (EN / IG / YO)</title>
   <style>
     * {
       box-sizing: border-box;
@@ -23,7 +23,7 @@
     }
     .lesson-wrapper {
       width: 100%;
-      max-width: 960px;
+      max-width: 980px;
       background: #121622;
       border: 1px solid rgba(212, 175, 55, 0.35);
       border-radius: 20px;
@@ -49,9 +49,21 @@
       padding: 6px 12px;
       border-radius: 999px;
     }
-    #sceneCounter {
+    .meta-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
       font-size: 13px;
-      color: #94a3b8;
+      color: #cbd5e1;
+    }
+    .timer-pill {
+      background: #0b0e17;
+      border: 1px solid rgba(245, 208, 97, 0.3);
+      color: #f5d061;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
     }
     .stage-box {
       position: relative;
@@ -77,8 +89,8 @@
     button {
       border: none;
       border-radius: 10px;
-      padding: 10px 16px;
-      font-size: 14px;
+      padding: 10px 15px;
+      font-size: 13px;
       font-weight: 700;
       cursor: pointer;
       transition: transform 0.12s ease, opacity 0.15s ease;
@@ -99,18 +111,28 @@
       color: #f8fafc;
       border: 1px solid rgba(255, 255, 255, 0.12);
     }
+    .btn-quiz {
+      background: #0ea5e9;
+      color: #041019;
+    }
     .btn-record {
       background: #dc2626;
       color: #ffffff;
       margin-left: auto;
     }
-    .voice-select-wrap {
+    .selectors-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      font-size: 13px;
+      color: #cbd5e1;
+      margin-top: 14px;
+    }
+    .select-item {
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 13px;
-      color: #cbd5e1;
-      margin-top: 12px;
     }
     select {
       background: #0b0e17;
@@ -121,8 +143,72 @@
       font-size: 13px;
       max-width: 100%;
     }
+    .quiz-panel {
+      margin-top: 16px;
+      background: #0b0f1a;
+      border: 1px solid rgba(245, 208, 97, 0.35);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .quiz-panel.hidden {
+      display: none;
+    }
+    .quiz-header {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #38bdf8;
+      margin-bottom: 6px;
+    }
+    .quiz-question {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+    .quiz-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+    }
+    .option-btn {
+      text-align: left;
+      background: #171e30;
+      color: #f1f5f9;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 11px 13px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .option-btn:hover {
+      border-color: #f5d061;
+    }
+    .option-btn.correct {
+      background: rgba(16, 185, 129, 0.22);
+      border-color: #10b981;
+      color: #d1fae5;
+    }
+    .option-btn.wrong {
+      background: rgba(239, 68, 68, 0.22);
+      border-color: #ef4444;
+      color: #fee2e2;
+    }
+    .quiz-feedback {
+      margin-top: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #fde68a;
+    }
+    .quiz-next-row {
+      margin-top: 12px;
+      display: flex;
+      justify-content: flex-end;
+    }
     .status-note {
-      margin-top: 10px;
+      margin-top: 12px;
       font-size: 12px;
       color: #94a3b8;
       line-height: 1.5;
@@ -132,8 +218,11 @@
 <body>
   <div class="lesson-wrapper">
     <div class="top-bar">
-      <span class="badge">lekkxygold tutor • GitHub + Supabase Video</span>
-      <span id="sceneCounter">Scene 1 / 5</span>
+      <span class="badge">lekkxygold tutor • GitHub + Supabase</span>
+      <div class="meta-group">
+        <span id="sceneCounter">Number 1 / 5</span>
+        <span id="timerDisplay" class="timer-pill">00:00 / 05:00</span>
+      </div>
     </div>
 
     <div class="stage-box">
@@ -141,21 +230,43 @@
     </div>
 
     <div class="controls">
-      <button id="playBtn" class="btn-gold">▶ Play Video</button>
+      <button id="playBtn" class="btn-gold">▶ Play Lesson</button>
       <button id="pauseBtn" class="btn-dark" disabled>⏸ Pause</button>
-      <button id="prevBtn" class="btn-dark">⏮ Prev</button>
-      <button id="nextBtn" class="btn-dark">Next ⏭</button>
-      <button id="restartBtn" class="btn-dark">↺ Replay</button>
-      <button id="recordBtn" class="btn-record">⏺ Record Video File</button>
+      <button id="prevBtn" class="btn-dark">⏮ Prev No.</button>
+      <button id="nextBtn" class="btn-dark">Next No. ⏭</button>
+      <button id="restartBtn" class="btn-dark">↺ Restart No.</button>
+      <button id="quizNowBtn" class="btn-quiz">❓ Questions</button>
+      <button id="recordBtn" class="btn-record">⏺ Record Video</button>
     </div>
 
-    <div class="voice-select-wrap">
-      <label for="voiceSelect">Narrator Voice:</label>
-      <select id="voiceSelect"></select>
+    <div class="selectors-row">
+      <div class="select-item">
+        <label for="langSelect">Language:</label>
+        <select id="langSelect">
+          <option value="en">English</option>
+          <option value="ig">Igbo (Asụsụ Igbo)</option>
+          <option value="yo">Yoruba (Èdè Yorùbá)</option>
+        </select>
+      </div>
+
+      <div class="select-item">
+        <label for="voiceSelect">Voice:</label>
+        <select id="voiceSelect"></select>
+      </div>
+    </div>
+
+    <div id="quizPanel" class="quiz-panel hidden">
+      <div id="quizHeader" class="quiz-header">Post-Lesson Check</div>
+      <div id="quizQuestion" class="quiz-question"></div>
+      <div id="quizOptions" class="quiz-options"></div>
+      <div id="quizFeedback" class="quiz-feedback"></div>
+      <div class="quiz-next-row">
+        <button id="continueNextBtn" class="btn-gold" style="display: none;">Next Lesson Number →</button>
+      </div>
     </div>
 
     <p id="statusNote" class="status-note">
-      Click "Play Video" to start the lekkxygold tutor lesson with voice sound. Tip: Use "Record Video File" to export a downloadable .webm video.
+      Each lesson number runs up to 5 minutes (05:00) with student-friendly explanations and questions at the end. Choose English, Igbo, or Yoruba, then press "Play Lesson".
     </p>
   </div>
 
