@@ -1,984 +1,1053 @@
-const canvas = document.getElementById("lessonCanvas");
+const canvas = document.getElementById("webinarCanvas");
 const ctx = canvas.getContext("2d");
 
 const playBtn = document.getElementById("playBtn");
 const pauseBtn = document.getElementById("pauseBtn");
+const speakBtn = document.getElementById("speakBtn");
 const prevBtn = document.getElementById("prevBtn");
 const nextBtn = document.getElementById("nextBtn");
 const restartBtn = document.getElementById("restartBtn");
-const quizNowBtn = document.getElementById("quizNowBtn");
-const recordBtn = document.getElementById("recordBtn");
+const quizBtn = document.getElementById("quizBtn");
 const langSelect = document.getElementById("langSelect");
 const voiceSelect = document.getElementById("voiceSelect");
-const sceneCounter = document.getElementById("sceneCounter");
-const timerDisplay = document.getElementById("timerDisplay");
-const statusNote = document.getElementById("statusNote");
+const paceSelect = document.getElementById("paceSelect");
+const partPills = document.getElementById("partPills");
+const partCounter = document.getElementById("partCounter");
+const totalTimerText = document.getElementById("totalTimerText");
+const readerLabel = document.getElementById("readerLabel");
+const readerText = document.getElementById("readerText");
+const footerNote = document.getElementById("footerNote");
 
-const quizPanel = document.getElementById("quizPanel");
-const quizHeader = document.getElementById("quizHeader");
-const quizQuestion = document.getElementById("quizQuestion");
-const quizOptions = document.getElementById("quizOptions");
-const quizFeedback = document.getElementById("quizFeedback");
-const continueNextBtn = document.getElementById("continueNextBtn");
+const quizBox = document.getElementById("quizBox");
+const quizTag = document.getElementById("quizTag");
+const quizQ = document.getElementById("quizQ");
+const quizOpts = document.getElementById("quizOpts");
+const quizAns = document.getElementById("quizAns");
+const nextPartBtn = document.getElementById("nextPartBtn");
 
-// Max 5 minutes (300 seconds) per lesson number
-const MAX_LESSON_SECONDS = 300;
+// Total webinar duration = 5 minutes (300 seconds) across 5 parts (60s each)
+const TOTAL_WEBINAR_SEC = 300;
+const PART_DURATION_SEC = 60;
+const LINE_INTERVAL_SEC = 15;
 
-const UI_LABELS = {
+const LABELS = {
   en: {
-    play: "▶ Play Lesson",
+    play: "▶ Start Webinar (5 Min)",
     pause: "⏸ Pause",
     resume: "▶ Resume",
-    prev: "⏮ Prev No.",
-    next: "Next No. ⏭",
-    restart: "↺ Restart No.",
-    quizBtn: "❓ Questions",
-    record: "⏺ Record Video",
-    stopRecord: "⏹ Stop & Save",
-    counterPrefix: "Number",
-    quizHeader: "Question After Number",
-    nextNumberBtn: "Continue to Next Number →",
-    finishAllBtn: "Finish All 5 Numbers (Replay No. 1)",
-    diagramTitle: "SIMPLE STUDENT DIAGRAM",
-    readyNote: "Choose English, Igbo, or Yoruba and press Play Lesson. Each number runs up to 5 minutes, followed by questions."
+    speak: "🔊 Speak Clearly",
+    prev: "⏮ Prev",
+    next: "Next ⏭",
+    restart: "↺ Restart",
+    quiz: "❓ Questions",
+    part: "Part",
+    readerLabel: "Webinar Presenter Script & Live Captions",
+    quizTag: "Webinar Q&A After Part",
+    nextPart: "Next Part →",
+    finishAll: "Complete 5-Min Webinar (Replay Part 1)",
+    note: "Total webinar is 5 minutes (05:00) across 5 parts with big slides, live presenter waveform, narration, and questions."
   },
   ig: {
-    play: "▶ Kpọọ Nkuzi",
-    pause: "⏸ Kwụsị Nwa Oge",
+    play: "▶ Malite Webinar (Nkeji 5)",
+    pause: "⏸ Kwụsị",
     resume: "▶ Gaa N'ihu",
-    prev: "⏮ Nọmba Azụ",
-    next: "Nọmba Ọzọ ⏭",
-    restart: "↺ Malite Ọzọ",
-    quizBtn: "❓ Ajụjụ",
-    record: "⏺ Dee Vidio",
-    stopRecord: "⏹ Kwụsị & Chekwaa",
-    counterPrefix: "Nọmba",
-    quizHeader: "Ajụjụ Mgbe Nọmba Gachara",
-    nextNumberBtn: "Gaa N'ihu na Nọmba Ọzọ →",
-    finishAllBtn: "Mechaa Nọmba 5 (Malite na Nọmba 1)",
-    diagramTitle: "ESERE NKA NKE DỊ MFE",
-    readyNote: "Họrọ Bekee, Igbo, ma ọ bụ Yoruba wee pịa Kpọọ Nkuzi. Nọmba ọ bụla ruru nkeji ise, e nweekwara ajụjụ mgbe o gasịrị."
+    speak: "🔊 Kpọọ Olu Nke Ọma",
+    prev: "⏮ Azụ",
+    next: "Ọzọ ⏭",
+    restart: "↺ Malite",
+    quiz: "❓ Ajụjụ",
+    part: "Nkebi",
+    readerLabel: "Okwu Onye Nkuzi Webinar & Ederede Ihụ",
+    quizTag: "Ajụjụ Webinar Mgbe Nkebi Gachara",
+    nextPart: "Nkebi Ọzọ →",
+    finishAll: "Mechaa Webinar Nkeji 5 (Malite na 1)",
+    note: "Webinar niile bụ nkeji ise (05:00) n'ime nkebi ise nwere slide dị ukwuu, olu, na ajụjụ mgbe nkebi ọ bụla gachara."
   },
   yo: {
-    play: "▶ Ṣí Ẹ̀kọ́",
-    pause: "⏸ Dádúró Díẹ̀",
+    play: "▶ Bẹ̀rẹ̀ Webinar (Ìṣẹ́jú 5)",
+    pause: "⏸ Dádúró",
     resume: "▶ Tẹ̀síwájú",
-    prev: "⏮ Nọ́ńbà Tẹ́lẹ̀",
-    next: "Nọ́ńbà Kàn ⏭",
-    restart: "↺ Bẹ̀rẹ̀ Lẹ́ẹ̀kan Sí i",
-    quizBtn: "❓ Àwọn Ìbéèrè",
-    record: "⏺ Gba Fídíò",
-    stopRecord: "⏹ Dádúró & Fi Pamọ́",
-    counterPrefix: "Nọ́ńbà",
-    quizHeader: "Ìbéèrè Lẹ́yìn Nọ́ńbà",
-    nextNumberBtn: "Tẹ̀síwájú sí Nọ́ńbà Kàn →",
-    finishAllBtn: "Parí Gbogbo Nọ́ńbà 5 (Bẹ̀rẹ̀ Nọ́ńbà 1)",
-    diagramTitle: "ÀWÒRÁN RỌRÙN FÚN AKẸ́KỌ̀Ọ́",
-    readyNote: "Yan Èdè Gẹ̀ẹ́sì, Igbo, tàbí Yorùbá kí o tẹ Ṣí Ẹ̀kọ́. Nọ́ńbà kọ̀ọ̀kan tó ìṣẹ́jú márùn-ún pẹ̀lú ìbéèrè lẹ́yìn náà."
+    speak: "🔊 Ka Ohùn Dáadáa",
+    prev: "⏮ Tẹ́lẹ̀",
+    next: "Kàn ⏭",
+    restart: "↺ Bẹ̀rẹ̀",
+    quiz: "❓ Àwọn Ìbéèrè",
+    part: "Apá",
+    readerLabel: "Ọ̀rọ̀ Olùkọ́ Webinar & Ìfihàn Ìbòjú",
+    quizTag: "Ìbéèrè Webinar Lẹ́yìn Apá",
+    nextPart: "Apá Kàn →",
+    finishAll: "Parí Webinar Ìṣẹ́jú 5 (Bẹ̀rẹ̀ Apá 1)",
+    note: "Gbogbo webinar jẹ́ ìṣẹ́jú márùn-ún (05:00) ní apá márùn-ún pẹ̀lú slide ńlá, ohùn, àti ìbéèrè lẹ́yìn apá kọ̀ọ̀kan."
   }
 };
 
-const LESSONS = [
+const PARTS = [
   {
-    number: 1,
-    diagram: "hosting",
+    id: 1,
+    visual: "hosting",
     en: {
-      title: "1. GitHub + Supabase: Simple Picture",
-      subtitle: "How a static website works without a heavy server",
-      points: [
-        "GitHub Pages shows your website pages (HTML, CSS, JS).",
-        "Supabase saves users, logins, and database rows safely.",
-        "Great for fast learning projects and student apps."
+      pill: "1. GitHub + Supabase",
+      title: "Part 1: GitHub Pages + Supabase",
+      subtitle: "Static web hosting paired with cloud auth & database",
+      bullets: [
+        "GitHub Pages serves your site (HTML, CSS, JS).",
+        "Supabase handles sign-up, login, and tables.",
+        "Fast, simple setup with no heavy server to run."
       ],
-      segments: [
-        "Welcome to lekkxygold tutor in English. In Number 1, let us make this super simple for every student. Imagine you open a shop on the internet. GitHub is like your clean shop front and display shelf where visitors see your page. Supabase is like the back room and record book where accounts and saved data are kept.",
-        "Because GitHub Pages serves static files like HTML, CSS, and JavaScript, you do not need to manage a complicated server yourself. Meanwhile, Supabase gives you ready-made login and database tools.",
-        "Take your time looking at the diagram. Notice how the student browser talks to GitHub for the page design, and talks to Supabase for login and stored information."
+      lines: [
+        "Welcome to the lekkxygold tutor webinar. This full session runs for 5 minutes total. In Part 1, GitHub Pages serves your static web pages while Supabase manages user accounts and database rows.",
+        "Think of GitHub as your sleek presentation stage and Supabase as your organized cloud database behind the scenes.",
+        "Watch the webinar diagram: the browser loads your interface from GitHub and connects over HTTPS to Supabase.",
+        "At the end of this part, we will test what you learned with a quick webinar question."
       ],
       question: {
-        q: "In a GitHub + Supabase static website, what is the main role of GitHub Pages?",
+        q: "What is GitHub Pages's main role in a GitHub + Supabase static web app?",
         options: [
           "Serving static front-end files like HTML, CSS, and JavaScript",
-          "Replacing all database tables with passwords",
-          "Hiding secret server passwords inside public code"
+          "Replacing database tables with passwords",
+          "Hiding secret server passwords inside public HTML"
         ],
         answer: 0,
-        explain: "Correct! GitHub Pages hosts and serves your static front-end files, while Supabase handles auth and database storage."
+        explain: "Correct! GitHub Pages serves static front-end files while Supabase handles authentication and database storage."
       }
     },
     ig: {
-      title: "1. GitHub + Supabase: Nkọwa Dị Mfe",
-      subtitle: "Otu webụsaịtị na-adịghị mkpa sava dị arọ si arụ ọrụ",
-      points: [
-        "GitHub Pages na-egosi ihu webụsaịtị gị (HTML, CSS, JS).",
-        "Supabase na-edobe ndị ọrụ, nbanye, na data n'ụzọ nchekwa.",
-        "Ọ dị mma maka ụmụ akwụkwọ na mmụta ngwa ngwa."
+      pill: "1. GitHub + Supabase",
+      title: "Nkebi 1: GitHub Pages + Supabase",
+      subtitle: "Nkwado webụsaịtị na nbanye na tebụl data n'igwe",
+      bullets: [
+        "GitHub Pages na-ebuga ihu gị (HTML, CSS, JS).",
+        "Supabase na-elekọta nbanye na tebụl data.",
+        "Ọ dị mfe ịmalite n'enweghị sava siri ike."
       ],
-      segments: [
-        "Nnọọ na nkuzi lekkxygold tutor n'asụsụ Igbo. Na Nọmba nke mbụ, ka anyị mee ka o doo ụmụ akwụkwọ anya nke ọma. Chee na i mepere ụlọ ahịa n'ịntanetị. GitHub dị ka ihu ụlọ ahịa na-egosi ngwaahịa, ebe Supabase dị ka ụlọ ndebe akwụkwọ na-edekọ ihe niile.",
-        "Ebe ọ bụ na GitHub Pages na-ebuga faịlụ ndị dị ka HTML, CSS, na JavaScript, i chọghị ịrụ sava siri ike n'onwe gị. Supabase na-enyekwara gị nbanye ndị ọrụ na ebe nchekwa data.",
-        "Lelee eserese ahụ nke ọma. I ga-ahụ ka braụza onye ọrụ si ejikọ na GitHub maka ihu akwụkwọ, ma jikọọ na Supabase maka data."
+      lines: [
+        "Nnọọ na webinar lekkxygold tutor. Nkuzi niile bụ nkeji ise. Na Nkebi nke mbụ, GitHub Pages na-ebuga faịlụ webụsaịtị gị ebe Supabase na-edobe nbanye na data.",
+        "Chee na GitHub bụ ihu ngosi, ebe Supabase bụ ebe nchekwa data haziri nke ọma.",
+        "Lee eserese webinar ahụ ka ị hụ otu braụza si ebuga ihu ma kpọtụrụ Supabase.",
+        "Mgbe nkebi a gasịrị, anyị ga-ajụ ajụjụ dị mfe iji lelee nghọta gị."
       ],
       question: {
-        q: "Na webụsaịtị GitHub na Supabase, gịnị ka GitHub Pages na-arụkarị?",
+        q: "Gịnị ka GitHub Pages na-arụ na webụsaịtị GitHub na Supabase?",
         options: [
           "O na-ebuga faịlụ dị ka HTML, CSS, na JavaScript",
-          "O na-ekpochapụ data ndị ọrụ niile",
-          "O na-edobe paswọọdụ nzuzo n'ihu ọha"
+          "O na-ehichapụ data ndị ọrụ niile",
+          "O na-ekesa paswọọdụ nzuzo n'ihu ọha"
         ],
         answer: 0,
-        explain: "Ọ dị mma! GitHub Pages na-ebuga faịlụ webụsaịtị, ebe Supabase na-elekọta nbanye na data."
+        explain: "Ọ dị mma! GitHub Pages na-ebuga faịlụ ihu, ebe Supabase na-edobe data na nbanye."
       }
     },
     yo: {
-      title: "1. GitHub + Supabase: Àlàyé Rọrùn",
-      subtitle: "Bí ojú-òpó wẹ́ẹ̀bù ṣe ń ṣiṣẹ́ láìsí sáfà tó wúwo",
-      points: [
-        "GitHub Pages ń fi ojú-òpó wẹ́ẹ̀bù hàn (HTML, CSS, JS).",
-        "Supabase ń tọ́jú àwọn olùlò, ìwọlé, àti dátà dáadáa.",
-        "Ó dára fún akẹ́kọ̀ọ́ àti ẹ̀kọ́ ìṣe-àgbékalẹ̀."
+      pill: "1. GitHub + Supabase",
+      title: "Apá 1: GitHub Pages + Supabase",
+      subtitle: "Ìgbékalẹ̀ ojú-òpó pẹ̀lú ìwọlé àti tábìlì dátà lórí íńtánẹ́ẹ̀tì",
+      bullets: [
+        "GitHub Pages ń gbé ojú-òpó jáde (HTML, CSS, JS).",
+        "Supabase ń ṣàkóso ìwọlé àti àwọn tábìlì dátà.",
+        "Ó rọrùn láti bẹ̀rẹ̀ láìsí sáfà tó wúwo."
       ],
-      segments: [
-        "Káàbọ̀ sí ẹ̀kọ́ lekkxygold tutor ní èdè Yorùbá. Nínú Nọ́ńbà kìíní, ẹ jẹ́ ká mú un rọrùn fún gbogbo akẹ́kọ̀ọ́. Fojú inú wò ó pé o ṣí ilé ìtajà lórí íńtánẹ́ẹ̀tì. GitHub dà bí iwájú ilé ìtajà tí ènìyàn ń rí, nígbà tí Supabase dà bí yàrá ìpamọ́ tí ó ń tọ́jú àkọsílẹ̀.",
-        "Nítorí pé GitHub Pages ń gbé àwọn fáìlì bíi HTML, CSS, àti JavaScript jáde, o kò ní láti máa tọ́jú sáfà tó díjú fúnra rẹ. Supabase sì ń pèsè ìwọlé àti ibi ìpamọ́ dátà.",
-        "Wò àwòrán náà dáadáa. O máa rí bí ẹ̀rọ aṣàwárí olùlò ṣe ń lo GitHub fún ìrísí ojú-òpó, tí ó sì ń lo Supabase fún dátà."
+      lines: [
+        "Káàbọ̀ sí webinar lekkxygold tutor. Gbogbo ẹ̀kọ́ jẹ́ ìṣẹ́jú márùn-ún. Nínú Apá kìíní, GitHub Pages ń gbé fáìlì ojú-òpó jáde nígbà tí Supabase ń tọ́jú ìwọlé àti dátà.",
+        "Fojú inú wò ó pé GitHub dà bí iwájú ìfihàn, tí Supabase sì dà bí ibi ìpamọ́ dátà.",
+        "Wo àwòrán webinar náà láti rí bí ẹ̀rọ aṣàwárí ṣe ń mú ojú-òpó wá tí ó sì ń bá Supabase ṣiṣẹ́.",
+        "Lẹ́yìn apá yìí, a óò béèrè ìbéèrè kúkúrú láti ṣàyẹ̀wò òye rẹ."
       ],
       question: {
-        q: "Nínú ojú-òpó wẹ́ẹ̀bù GitHub àti Supabase, kí ni iṣẹ́ pàtàkì GitHub Pages?",
+        q: "Kí ni iṣẹ́ GitHub Pages nínú ojú-òpó wẹ́ẹ̀bù GitHub àti Supabase?",
         options: [
-          "Gbigbé àwọn fáìlì bíi HTML, CSS, àti JavaScript jáde",
-          "Pípa gbogbo dátà olùlò run",
-          "Fífipamọ́ kọ́kọ́rọ́ ìkọ̀kọ̀ sínú gbangba"
+          "Ó ń gbé àwọn fáìlì bíi HTML, CSS, àti JavaScript jáde",
+          "Ó ń pa gbogbo dátà run",
+          "Ó ń fi kọ́kọ́rọ́ ìkọ̀kọ̀ sínú HTML gbangba"
         ],
         answer: 0,
-        explain: "Ó tọ̀nà! GitHub Pages ń gbé àwọn fáìlì ojú-òpó jáde, nígbà tí Supabase ń ṣàkóso ìwọlé àti dátà."
+        explain: "Ó tọ̀nà! GitHub Pages ń gbé fáìlì jáde, nígbà tí Supabase ń tọ́jú ìwọlé àti dátà."
       }
     }
   },
   {
-    number: 2,
-    diagram: "architecture",
+    id: 2,
+    visual: "architecture",
     en: {
-      title: "2. Architecture & Browser Trust",
-      subtitle: "Why front-end code is public and secrets must stay safe",
-      points: [
-        "Browser loads UI from GitHub and calls Supabase over HTTPS.",
-        "Anyone can open DevTools and read front-end HTML/JS.",
-        "Use the public anon key safely; never expose service_role keys."
+      pill: "2. Keys & Trust",
+      title: "Part 2: Architecture & Secret Keys",
+      subtitle: "Browser code is visible—protect secret credentials",
+      bullets: [
+        "Browser downloads front-end code and calls Supabase.",
+        "Visitors can inspect front-end code in any browser.",
+        "Never place service_role secret keys in browser JS."
       ],
-      segments: [
-        "Welcome to Number 2. Here we talk about architecture—how the parts connect. When a student opens your website, their browser downloads your code and sends requests to Supabase.",
-        "The golden rule for beginners is this: the browser is not a secret vault. Any visitor can right-click, inspect elements, or read your JavaScript file.",
-        "That is why you only put your public Supabase anon key in front-end code, and never put private secret keys inside browser scripts."
+      lines: [
+        "Welcome to Part 2 of our webinar. Remember that any code running inside a web browser can be inspected by users.",
+        "Only place your public Supabase anon key in front-end code, and never expose private service_role keys.",
+        "Keep secret credentials safely on protected servers, never in public client files.",
+        "Next, we will answer a quick question on keeping API keys safe."
       ],
       question: {
-        q: "Which key should NEVER be placed inside public browser JavaScript?",
+        q: "Which key must NEVER be placed inside public browser JavaScript?",
         options: [
-          "The private service_role secret key",
-          "The normal webpage title text",
-          "A CSS button color class"
+          "The private service_role key",
+          "A webpage heading text",
+          "A button background color"
         ],
         answer: 0,
-        explain: "Spot on! Never expose private or service_role keys in front-end code because anyone can inspect browser code."
+        explain: "Correct! Never expose private or service_role keys inside browser code."
       }
     },
     ig: {
-      title: "2. Nchịkọta Sistemụ & Nchekwa Braụza",
-      subtitle: "Gịnị mere koodu ihu ji pụta ìhè na otu e si echekwa ihe nzuzo",
-      points: [
-        "Braụza na-ebuga ihu site na GitHub ma kpọtụrụ Supabase.",
-        "Onye ọ bụla nwere ike ile koodu HTML/JS na braụza.",
-        "Jiri anon key nke ọma; egbula service_role key n'ihu ọha."
+      pill: "2. Igodo & Nchekwa",
+      title: "Nkebi 2: Nhazi Sistemụ & Igodo Nzuzo",
+      subtitle: "A na-ahụ koodu braụza—chebe igodo nzuzo",
+      bullets: [
+        "Braụza na-ebuga koodu ma kpọtụrụ Supabase.",
+        "Ndị mmadụ nwere ike ile koodu dị na braụza.",
+        "Egbula service_role key na koodu braụza."
       ],
-      segments: [
-        "Nnọọ na Nọmba nke abụọ. Ebe a, anyị na-ekwu banyere otu akụkụ dị iche iche si ejikọ ọnụ. Mgbe mmadụ mepere webụsaịtị gị, braụza ya na-ebuga koodu gị ma na-agwa Supabase okwu.",
-        "Iwu dị mkpa maka ụmụ akwụkwọ bụ na braụza abụghị ebe nzuzo. Onye ọ bụla nwere ike ilele koodu JavaScript dị n'ihu webụsaịtị.",
-        "N'ihi ya, e debela igodo nzuzo dị ka service_role key n'ime koodu braụza; naanị igodo ọha kwesịrị ekwesị ka a na-eji n'ihu."
+      lines: [
+        "Nnọọ na Nkebi nke abụọ nke webinar anyị. Cheta na onye ọ bụla nwere ike ịhụ koodu dị na braụza.",
+        "Jiri naanị anon key n'ihu webụsaịtị, ma e debela service_role key nzuzo n'ime braụza.",
+        "Debe ihe nzuzo n'ebe e chebere nke ọma, ọ bụghị na braụza ọha.",
+        "Mgbe nkebi a gachara, anyị ga-aza ajụjụ banyere nchekwa igodo."
       ],
       question: {
-        q: "Olee igodo a na-ekwesịghị itinye n'ime koodu JavaScript dị na braụza?",
+        q: "Olee igodo a na-ekwesịghị itinye na koodu JavaScript dị na braụza?",
         options: [
           "Igodo nzuzo service_role key",
-          "Aha isiokwu dị n'elu peeji",
-          "Agba bọtịnụ na CSS"
+          "Aha isiokwu peeji",
+          "Agba bọtịnụ"
         ],
         answer: 0,
-        explain: "Ezigbo azịza! Egbula service_role key na braụza n'ihi na ndị mmadụ nwere ike ịhụ koodu ihu."
+        explain: "Ọ dị mma! Egbula service_role key na koodu braụza."
       }
     },
     yo: {
-      title: "2. Ìṣètò Ètò & Ààbò Ẹ̀rọ Aṣàwárí",
-      subtitle: "Kí ló dé tí kọ́òdù ojú-òpó fi hàn àti bí a ṣe ń dáàbò bo àṣírí",
-      points: [
-        "Ẹ̀rọ aṣàwárí ń mú ìrísí wá láti GitHub, ó sì ń pe Supabase.",
-        "Ẹnikẹ́ni lè wo kọ́òdù HTML/JS nínú ẹ̀rọ aṣàwárí.",
-        "Lo anon key dáadáa; má ṣe fi service_role key sí gbangba."
+      pill: "2. Kọ́kọ́rọ́ & Ààbò",
+      title: "Apá 2: Ìṣètò Ètò & Kọ́kọ́rọ́ Àṣírí",
+      subtitle: "A lè rí kọ́òdù ẹ̀rọ aṣàwárí—dáàbò bo àṣírí",
+      bullets: [
+        "Ẹ̀rọ aṣàwárí ń mú kọ́òdù wá tí ó sì ń pe Supabase.",
+        "Àwọn àlejò lè wo kọ́òdù nínú ẹ̀rọ aṣàwárí.",
+        "Má ṣe fi service_role key sínú JS ẹ̀rọ aṣàwárí."
       ],
-      segments: [
-        "Káàbọ̀ sí Nọ́ńbà kejì. Níbí, a ń sọ̀rọ̀ nípa bí àwọn ẹ̀yà ara ètò ṣe ń sopọ̀ mọ́ ara wọn. Nígbà tí akẹ́kọ̀ọ́ bá ṣí ojú-òpó rẹ, ẹ̀rọ aṣàwárí rẹ̀ ń gba kọ́òdù wọlé tí ó sì ń bá Supabase sọ̀rọ̀.",
-        "Òfin pàtàkì fún àwọn akẹ́kọ̀ọ́ ni pé ẹ̀rọ aṣàwárí kì í ṣe ibi ìpamọ́ àṣírí. Ẹnikẹ́ni lè wo kọ́òdù JavaScript tí ó wà ní ojú-òpó.",
-        "Ìdí nìyẹn tí a kò gbọdọ̀ fi kọ́kọ́rọ́ àṣírí bíi service_role key sínú kọ́òdù ẹ̀rọ aṣàwárí."
+      lines: [
+        "Káàbọ̀ sí Apá kejì webinar wa. Máa rántí pé kọ́òdù tí ń ṣiṣẹ́ nínú ẹ̀rọ aṣàwárí ṣeé wò fún ẹnikẹ́ni.",
+        "Lo anon key gbangba nìkan nínú kọ́òdù ojú-òpó, má sì ṣe fi service_role key àṣírí sínú braụza.",
+        "Tọ́jú àwọn kọ́kọ́rọ́ àṣírí sí ibi ààbò tó dájú.",
+        "Lẹ́yìn apá yìí, a óò dáhùn ìbéèrè nípa ààbò kọ́kọ́rọ́."
       ],
       question: {
-        q: "Kọ́kọ́rọ́ wo ni kò yẹ kí ó wà nínú kọ́òdù JavaScript tí gbogbo ènìyàn lè rí?",
+        q: "Kọ́kọ́rọ́ wo ni kò gbọdọ̀ wà nínú kọ́òdù JavaScript tí gbogbo ènìyàn lè rí?",
         options: [
           "Kọ́kọ́rọ́ àṣírí service_role key",
-          "Àkọlé ojú-òpó wẹ́ẹ̀bù",
-          "Àwọ̀ bọ́tìnì nínú CSS"
+          "Ọ̀rọ̀ àkọlé ojú-òpó",
+          "Àwọ̀ bọ́tìnì"
         ],
         answer: 0,
-        explain: "Ó dára púpọ̀! Má ṣe fi service_role key sínú kọ́òdù ẹ̀rọ aṣàwárí nítorí ẹnikẹ́ni lè yẹ̀ ẹ́ wò."
+        explain: "Ó tọ̀nà! Má ṣe fi service_role key sínú kọ́òdù ẹ̀rọ aṣàwárí."
       }
     }
   },
   {
-    number: 3,
-    diagram: "structure",
+    id: 3,
+    visual: "structure",
     en: {
-      title: "3. Structural Notes: Views & Tables",
-      subtitle: "Organizing clean screens, functions, and database tables",
-      points: [
-        "Separate login screens from the main signed-in dashboard.",
-        "Keep UI display helpers separate from database queries.",
-        "Use structured tables (profiles, transactions) with timestamps."
+      pill: "3. Code Structure",
+      title: "Part 3: Clean Code & Table Structure",
+      subtitle: "Separate login views, helpers, and history tables",
+      bullets: [
+        "Keep login screen separate from main dashboard.",
+        "Separate display helpers from Supabase queries.",
+        "Use clear tables like profiles and transactions."
       ],
-      segments: [
-        "Welcome to Number 3. Good structure makes your code easy to read, fix, and teach. First, keep your login or registration view separate from your main app view so users only enter after signing in.",
-        "Second, keep your code organized: have clear functions for showing messages or formatting money, and clear functions for talking to Supabase.",
-        "Third, design your database tables cleanly—like a profiles table for user details and a transactions table with timestamps so every action has a clear record."
+      lines: [
+        "Welcome to Part 3. Clean structure makes your webinar project easy to understand, maintain, and scale.",
+        "Keep the sign-in screen separate from the main dashboard so users enter cleanly after authentication.",
+        "Separate display helpers from database calls, and log actions in tables with timestamps.",
+        "Let us move to the Part 3 webinar question next."
       ],
       question: {
-        q: "Why is it good practice to log actions in a transactions table with timestamps?",
+        q: "Why keep login screens separate from the main dashboard?",
         options: [
-          "It creates a clear, traceable history of what happened and when",
-          "It stops HTML from loading on mobile phones",
-          "It removes the need for any user login"
+          "It keeps access clear and organized until the user signs in",
+          "It deletes CSS styles automatically",
+          "It stops users from logging in"
         ],
         answer: 0,
-        explain: "Well done! Timestamps and history tables help you track actions clearly and debug issues easily."
+        explain: "Correct! Separating login and dashboard views keeps the user flow clean."
       }
     },
     ig: {
-      title: "3. Ndozi Ọdịdị: Ihụ Na Tebụl Data",
-      subtitle: "Ikwado peeji, ọrụ koodu, na tebụl data n'usoro",
-      points: [
-        "Kewaa peeji nbanye pụọ na dashbọọdụ onye banyere.",
-        "Kewaa ihe na-egosi ihe na ihe na-akpọtụrụ database.",
-        "Jiri tebụl data doro anya (profiles, transactions) nwere oge."
+      pill: "3. Nhazi Koodu",
+      title: "Nkebi 3: Nhazi Koodu & Tebụl Data",
+      subtitle: "Kewaa ihu nbanye, ngosipụta, na ndekọ data",
+      bullets: [
+        "Kewaa peeji nbanye pụọ na dashbọọdụ.",
+        "Kewaa ihe na-egosi ihu pụọ na oku database.",
+        "Debe tebụl profiles na transactions nwere oge."
       ],
-      segments: [
-        "Nnọọ na Nọmba nke atọ. Ezi nhazi na-eme ka koodu dị mfe ịghọta na idozi. Nke mbụ, kewaa peeji nbanye pụọ na peeji ime ụlọ ka onye na-abanyeghị ghara ịhụ ihe nzuzo.",
-        "Nke abụọ, hazie koodu gị nke ọma: kewaa ihe na-egosi ozi ma ọ bụ gụọ ego pụọ na ihe na-eziga ma ọ bụ na-eweta data na Supabase.",
-        "Nke atọ, hazie tebụl data gị nke ọma—dị ka tebụl profiles na tebụl transactions nwere oge ka e wee mara ihe mere na mgbe o mere."
+      lines: [
+        "Nnọọ na Nkebi nke atọ. Ezi nhazi na-eme ka ọrụ dị mfe ịghọta na idozi.",
+        "Debe peeji nbanye iche pụọ na dashbọọdụ ka usoro nbanye dị ọcha.",
+        "Kewaa ihe na-egosi ihu pụọ na oku data, ma dekọọ ihe mere nwere oge.",
+        "Ajụjụ Nkebi nke atọ na-esote ozugbo."
       ],
       question: {
-        q: "Gịnị mere o ji dị mma idekọ ihe mere na tebụl transactions nwere oge?",
+        q: "Gịnị mere e ji ekewa peeji nbanye pụọ na dashbọọdụ?",
         options: [
-          "O na-enye ndekọ doro anya nke ihe mere na oge o mere",
-          "O na-eme ka ekwentị ghara ịgụ HTML",
-          "O na-ewepụ mkpa nbanye onye ọrụ"
+          "O na-eme ka usoro dị ọcha ma hazie nke ọma tupu nbanye",
+          "O na-ehichapụ agba webụsaịtị",
+          "O na-egbochi mmadụ ịbanye"
         ],
         answer: 0,
-        explain: "Ọ dị mma! Ndekọ nwere oge na-enyere aka ịhụ ihe mere nke ọma na idozi nsogbu."
+        explain: "Ọ dị mma! Ikewa ihu nbanye na dashbọọdụ na-eme ka usoro dị mfe ịhazi."
       }
     },
     yo: {
-      title: "3. Ìṣètò Kóòdù: Àwọn Ojú-Ìwé & Tábìlì Dátà",
-      subtitle: "Pínpín ojú-ìwé, iṣẹ́ kóòdù, àti tábìlì dátà lọ́nà tó yéni",
-      points: [
-        "Ya ojú-ìwé ìwọlé sọ́tọ̀ kúrò nínú pẹpẹ inú ètò.",
-        "Ya ìfihàn ojú-ìwé sọ́tọ̀ kúrò nínú ìbéèrè dátà.",
-        "Lo tábìlì dátà tó péye (profiles, transactions) pẹ̀lú àkókò."
+      pill: "3. Ìṣètò Kóòdù",
+      title: "Apá 3: Ìṣètò Kóòdù & Tábìlì Dátà",
+      subtitle: "Ya ojú-ìwé ìwọlé, ìrànlọ́wọ́, àti tábìlì ìtàn sọ́tọ̀",
+      bullets: [
+        "Ya ojú-ìwé ìwọlé sọ́tọ̀ kúrò nínú pẹpẹ àkọ́kọ́.",
+        "Ya ìfihàn ojú-òpó sọ́tọ̀ kúrò nínú ìpè dátà.",
+        "Lo tábìlì profiles àti transactions pẹ̀lú àkókò."
       ],
-      segments: [
-        "Káàbọ̀ sí Nọ́ńbà kẹta. Ìṣètò tó dára ń mú kí kóòdù rọrùn láti kà, ṣàtúnṣe, àti kọ́ni. Àkọ́kọ́, ya ojú-ìwé ìwọlé sọ́tọ̀ kúrò nínú pẹpẹ àkọ́kọ́ kí ẹni tí kò tíì wọlé má bàa rí inú ètò.",
-        "Ìkejì, tò kóòdù rẹ lọ́nà: ya iṣẹ́ tí ń fi ìròyìn hàn sọ́tọ̀ kúrò nínú iṣẹ́ tí ń bá Supabase gba tàbí fi dátà ránṣẹ́.",
-        "Ìkẹta, ṣe àwọn tábìlì dátà dáadáa—bíi tábìlì profiles àti transactions pẹ̀lú àkókò kí a lè rí ohun tí ó ṣẹlẹ̀ àti ìgbà tí ó ṣẹlẹ̀."
+      lines: [
+        "Káàbọ̀ sí Apá kẹta. Ìṣètò tó dára ń mú kí iṣẹ́ rọrùn láti yé àti láti ṣàtúnṣe.",
+        "Ya ojú-ìwé ìwọlé sọ́tọ̀ kúrò nínú pẹpẹ àkọ́kọ́ kí ìwọlé lè wà ní ètò.",
+        "Ya ìfihàn sọ́tọ̀ kúrò nínú ìpè dátà, kí o sì kọ àwọn ìṣẹ̀lẹ̀ pẹ̀lú àkókò.",
+        "Ìbéèrè Apá kẹta ń bọ̀ lẹ́sẹ̀kẹsẹ̀."
       ],
       question: {
-        q: "Kí ló dé tí ó fi dára láti kọ àwọn ìṣẹ̀lẹ̀ sínú tábìlì transactions pẹ̀lú àkókò?",
+        q: "Kí ló dé tí a fi ń ya ojú-ìwé ìwọlé sọ́tọ̀ kúrò nínú pẹpẹ àkọ́kọ́?",
         options: [
-          "Ó ń fún wa ní àkọsílẹ̀ tó dájú nípa ohun tí ó ṣẹlẹ̀ àti àkókò rẹ̀",
-          "Ó ń dí HTML lọ́wọ́ láti ṣí lórí fóònù",
-          "Ó ń mú kí ìwọlé olùlò má ṣe pàtàkì mọ́"
+          "Ó ń mú kí ìṣàn ètò wà ní ètò àti mímọ́ ṣáájú ìwọlé",
+          "Ó ń pa CSS run láìfọwọ́sí",
+          "Ó ń dí olùlò lọ́wọ́ láti wọlé"
         ],
         answer: 0,
-        explain: "Ó tọ̀nà pátápátá! Àkọsílẹ̀ pẹ̀lú àkókò ń ran wa lọ́wọ́ láti tọpinpin àwọn ìṣẹ̀lẹ̀ dáadáa."
+        explain: "Ó tọ̀nà! Pínpín ojú-ìwé ìwọlé àti pẹpẹ sọ́tọ̀ ń mú kí ètò wà ní àlàáfíà."
       }
     }
   },
   {
-    number: 4,
-    diagram: "security",
+    id: 4,
+    visual: "security",
     en: {
-      title: "4. Row Level Security (RLS) & Rules",
-      subtitle: "Protecting user data and keeping sensitive actions safe",
-      points: [
-        "Turn on Row Level Security (RLS) on your database tables.",
-        "Use policies like auth.uid() = id so users see only their data.",
-        "Keep critical balance and reward rules on the server side."
+      pill: "4. Row Security",
+      title: "Part 4: Row Level Security (RLS)",
+      subtitle: "Protect database rows and keep sensitive logic safe",
+      bullets: [
+        "Enable Row Level Security (RLS) on every table.",
+        "Use auth.uid() policies so users access own rows.",
+        "Keep critical balance and reward rules server-side."
       ],
-      segments: [
-        "Welcome to Number 4. Imagine a classroom locker where every student has their own key. Row Level Security—or RLS—is the lock on each student's row in PostgreSQL.",
-        "Without RLS policies, one signed-in user might try to read or change another user's records. With policies checking auth.uid(), each user stays in their own lane.",
-        "Also, for real money or rewards in production apps, put sensitive calculations and balance updates in secure server-side functions rather than trusting only the browser."
+      lines: [
+        "Welcome to Part 4. Row Level Security—or RLS—protects rows inside your PostgreSQL tables.",
+        "Policies using auth.uid() keep each user's records isolated from other users.",
+        "For real money or rewards in production apps, handle critical rules server-side.",
+        "Let us check your knowledge with the Part 4 question."
       ],
       question: {
-        q: "What does Row Level Security (RLS) with auth.uid() help prevent?",
+        q: "What does Row Level Security (RLS) do in Supabase?",
         options: [
-          "Users reading or modifying other users' protected rows directly",
-          "CSS styles from loading in the browser",
-          "Students from asking questions after a lesson"
+          "Restricts database row access using policies like auth.uid()",
+          "Changes font sizes on mobile screens",
+          "Disables HTTPS connections"
         ],
         answer: 0,
-        explain: "Correct! RLS restricts database rows so users only access the records their policy permits."
+        explain: "Correct! RLS enforces policies on database rows so users only access permitted rows."
       }
     },
     ig: {
-      title: "4. Row Level Security (RLS) & Iwu Nchekwa",
-      subtitle: "Ichebe data ndị ọrụ na idobe ihe dị mkpa n'udo",
-      points: [
-        "Mụnye Row Level Security (RLS) na tebụl data gị niile.",
-        "Jiri iwu dị ka auth.uid() = id ka onye ọ bụla hụ nke ya.",
-        "Debe iwu ego na onyinye dị mkpa n'akụkụ sava."
+      pill: "4. Nchekwa Ahịrị",
+      title: "Nkebi 4: Row Level Security (RLS)",
+      subtitle: "Chebe ahịrị data ma debe iwu dị mkpa n'udo",
+      bullets: [
+        "Mụnye RLS na tebụl data gị niile.",
+        "Jiri iwu auth.uid() ichebe data onye ọ bụla.",
+        "Debe mgbanwe ego na onyinye dị mkpa n'akụkụ sava."
       ],
-      segments: [
-        "Nnọọ na Nọmba nke anọ. Chee banyere igbe nchekwa na klaasị ebe nwa akwụkwọ ọ bụla nwere igodo nke ya. Row Level Security—ma ọ bụ RLS—bụ mkpọchi na-echebe ahịrị data ọ bụla na PostgreSQL.",
-        "Ọ bụrụ na e nweghị RLS, onye banyere nwere ike ịnwale ịgbanwe data onye ọzọ. Site na auth.uid(), onye ọ bụla na-anọ n'oke nke ya.",
-        "Ọzọkwa, maka ezigbo ego ma ọ bụ onyinye na ngwa ndị mmadụ na-eji, debe mgbakọ na mgbanwe ego dị mkpa n'akụkụ sava, ọ bụghị naanị na braụza."
+      lines: [
+        "Nnọọ na Nkebi nke anọ. Row Level Security ma ọ bụ RLS na-echebe ahịrị data na PostgreSQL.",
+        "Iwu na-eji auth.uid() na-eme ka data onye ọ bụla dị iche site na nke ndị ọzọ.",
+        "Maka ego ma ọ bụ onyinye dị mkpa, debe iwu nchekwa n'akụkụ sava.",
+        "Ka anyị lelee nghọta gị na ajụjụ Nkebi nke anọ."
       ],
       question: {
-        q: "Gịnị ka Row Level Security (RLS) na auth.uid() na-enyere aka igbochi?",
+        q: "Gịnị ka Row Level Security (RLS) na-eme na Supabase?",
         options: [
-          "Ndị ọrụ ịhụ ma ọ bụ gbanwee data ndị ọrụ ọzọ n'ụzọ na-ezighị ezi",
-          "Agba CSS ịdị na peeji",
-          "Ụmụ akwụkwọ ịjụ ajụjụ mgbe nkuzi gasịrị"
+          "O na-echebe nnweta ahịrị data site na iwu dị ka auth.uid()",
+          "O na-agbanwe nha mkpụrụ akwụkwọ",
+          "O na-ewepụ nchekwa HTTPS"
         ],
         answer: 0,
-        explain: "Ezigbo azịza! RLS na-echebe ahịrị data ka onye ọ bụla nweta naanị ihe ikike ya kwere."
+        explain: "Ọ dị mma! RLS na-echebe ahịrị data site na iwu nchekwa."
       }
     },
     yo: {
-      title: "4. Row Level Security (RLS) & Àwọn Òfin Ààbò",
-      subtitle: "Dídáàbò bo dátà olùlò àti títọ́jú àwọn ìṣe pàtàkì ní ààbò",
-      points: [
-        "Mú Row Level Security (RLS) ṣiṣẹ́ lórí àwọn tábìlì dátà rẹ.",
-        "Lo ìlànà bíi auth.uid() = id kí olùlò kan rí dátà tirẹ̀ nìkan.",
-        "Fi òfin ìṣirò owó àti ẹ̀bùn pàtàkì sí apá sáfà."
+      pill: "4. Ààbò Ìlà",
+      title: "Apá 4: Row Level Security (RLS)",
+      subtitle: "Dáàbò bo ìlà dátà kí olùlò kan rí dátà tirẹ̀ nìkan",
+      bullets: [
+        "Mú RLS ṣiṣẹ́ lórí gbogbo tábìlì dátà rẹ.",
+        "Lo ìlànà auth.uid() láti dáàbò bo dátà olùlò kọ̀ọ̀kan.",
+        "Fi ìṣirò owó àti ẹ̀bùn pàtàkì sí apá sáfà."
       ],
-      segments: [
-        "Káàbọ̀ sí Nọ́ńbà kẹrin. Fojú inú wò ó pé akẹ́kọ̀ọ́ kọ̀ọ̀kan ní àpótí ìpamọ́ tirẹ̀ pẹ̀lú kọ́kọ́rọ́ tirẹ̀. Row Level Security—tàbí RLS—ni ààbò tí ó ń dáàbò bo ìlà dátà kọ̀ọ̀kan nínú PostgreSQL.",
-        "Tí RLS kò bá sí, ẹni tí ó wọlé lè gbìyànjú láti wo tàbí yí dátà ẹlòmíràn padà. Pẹ̀lú auth.uid(), olùlò kọ̀ọ̀kan wà ní àyè tirẹ̀.",
-        "Bákan náà, fún owó gidi tàbí ẹ̀bùn nínú ètò gidi, fi àwọn ìṣirò pàtàkì sí apá sáfà kí a má ṣe gbẹ́kẹ̀ lé ẹ̀rọ aṣàwárí nìkan."
+      lines: [
+        "Káàbọ̀ sí Apá kẹrin. Row Level Security tàbí RLS ń dáàbò bo àwọn ìlà dátà nínú Supabase.",
+        "Ìlànà tí ó ń lo auth.uid() ń rí i dájú pé olùlò kan ń rí tàbí ṣàtúnṣe dátà tirẹ̀ nìkan.",
+        "Fún owó gidi tàbí ẹ̀bùn, tọ́jú àwọn ìṣirò pàtàkì sí apá sáfà.",
+        "Ẹ jẹ́ ká ṣàyẹ̀wò òye rẹ nínú ìbéèrè Apá kẹrin."
       ],
       question: {
-        q: "Kí ni Row Level Security (RLS) pẹ̀lú auth.uid() ń ṣe ìrànlọ́wọ́ láti dènà?",
+        q: "Kí ni Row Level Security (RLS) ń ṣe nínú Supabase?",
         options: [
-          "Kí olùlò má lè wo tàbí yí dátà olùlò mìíràn padà láì ní àṣẹ",
-          "Kí CSS má lè ṣiṣẹ́ nínú ẹ̀rọ aṣàwárí",
-          "Kí akẹ́kọ̀ọ́ má lè béèrè ìbéèrè lẹ́yìn ẹ̀kọ́"
+          "Ó ń dènà wíwọlé sí ìlà dátà láì ní àṣẹ nípasẹ̀ auth.uid()",
+          "Ó ń yí ìwọ̀n lẹ́tà padà",
+          "Ó ń pa HTTPS run"
         ],
         answer: 0,
-        explain: "Ó dára gan-an! RLS ń dáàbò bo ìlà dátà kí olùlò kan lè rí ohun tí ìlànà fàyè gbà nìkan."
+        explain: "Ó tọ̀nà! RLS ń dáàbò bo ìlà dátà nípasẹ̀ àwọn ìlànà ààbò."
       }
     }
   },
   {
-    number: 5,
-    diagram: "compliance",
+    id: 5,
+    visual: "laws",
     en: {
-      title: "5. Laws, Privacy & Responsible Use",
-      subtitle: "Following platform rules, data privacy, and clear labels",
-      points: [
-        "Respect GitHub and Supabase rules; never build deceptive sites.",
-        "Handle personal info (phone, email, bank) with privacy care.",
+      pill: "5. Laws & Ethics",
+      title: "Part 5: Laws, Privacy & Ethics",
+      subtitle: "Follow platform rules, protect personal info, and label demos",
+      bullets: [
+        "Follow GitHub and Supabase terms; avoid deceptive sites.",
+        "Protect personal data like phone numbers, emails, and bank info.",
         "Clearly label financial/investment demos as educational practice."
       ],
-      segments: [
-        "Welcome to Number 5, our final lesson number. Great developers follow both code rules and real-world laws. Always follow GitHub and Supabase terms of service and never create misleading or abusive pages.",
-        "When an app collects personal details like phone numbers, email addresses, or bank information, data privacy laws require careful protection and honesty with users.",
-        "Also, any financial, loan, or investment screen built in class or for a portfolio should be clearly marked as an educational demo—not real licensed banking or financial advice. Great job in lekkxygold tutor!"
+      lines: [
+        "Welcome to Part 5, the closing part of our 5-minute webinar. Always follow GitHub and Supabase terms.",
+        "Respect data privacy laws when handling phone numbers, emails, or bank information.",
+        "Clearly label financial or investment practice projects as educational demos.",
+        "Thank you for joining lekkxygold tutor! Answer the final question to wrap up."
       ],
       question: {
-        q: "How should a student or tutor present a financial/investment demo built for practice?",
+        q: "How should a practice financial or investment page be labeled?",
         options: [
-          "Clearly label it as an educational or simulated practice project",
-          "Claim it is a real licensed bank without authorization",
-          "Ignore user privacy when collecting phone numbers"
+          "Clearly labeled as an educational or simulated demo",
+          "Presented as an unauthorized real bank",
+          "Built with no care for user privacy"
         ],
         answer: 0,
-        explain: "Well done! Clearly marking practice/demo apps as educational protects users and follows ethical and legal guidelines."
+        explain: "Correct! Clearly labeling educational demos as practice keeps users informed and follows ethical rules."
       }
     },
     ig: {
-      title: "5. Iwu, Nzuzo Data & Ezi Omume",
-      subtitle: "Irubere iwu ikpo okwu, nzuzo data, na nkọwa doro anya isi",
-      points: [
-        "Soro iwu GitHub na Supabase; emela webụsaịtị aghụghọ.",
-        "Chebe data mmadụ (ekwentị, email, ụlọ akụ) nke ọma.",
-        "Kọwaa n'ụzọ doro anya na ihe ngosi ego bụ maka mmụta."
+      pill: "5. Iwu & Omume",
+      title: "Nkebi 5: Iwu, Nzuzo Data & Ezi Omume",
+      subtitle: "Soro iwu ikpo okwu, chebe data mmadụ, ma kọwaa ihe ngosi",
+      bullets: [
+        "Soro usoro GitHub na Supabase; emela ihe aghụghọ.",
+        "Chebe nọmba ekwentị, email, na akụkọ ụlọ akụ mmadụ.",
+        "Kọwaa nke ọma na ihe ngosi ego bụ maka mmụta."
       ],
-      segments: [
-        "Nnọọ na Nọmba nke ise, nke bụ nkuzi ikpeazụ anyị. Ezigbo ndị na-eme koodu na-esoro iwu koodu na iwu ụwa. Soro usoro GitHub na Supabase mgbe niile ma emela ihe na-eduhie mmadụ.",
-        "Mgbe ngwa na-anakọta nkọwa mmadụ dị ka nọmba ekwentị, email, ma ọ bụ akụkọ ụlọ akụ, iwu nzuzo data chọrọ nchekwa na eziokwu.",
-        "Ọzọkwa, ihe ngosi ego ma ọ bụ mbinye ego e mere maka klaasị kwesịrị ịdị pụtara ìhè dị ka ihe mmụta—ọ bụghị ụlọ akụ enyere ikike. Daalụ nke ukwuu na lekkxygold tutor!"
+      lines: [
+        "Nnọọ na Nkebi nke ise, nke bụ nkebi ikpeazụ nke webinar nkeji ise. Soro usoro GitHub na Supabase mgbe niile.",
+        "Chebe nzuzo mgbe ị na-anakọta nọmba ekwentị, email, ma ọ bụ nkọwa ụlọ akụ.",
+        "Kọwaa na ihe ngosi ego bụ maka mmụta.",
+        "Daalụ maka isonye na lekkxygold tutor! Zaa ajụjụ ikpeazụ iji mechaa."
       ],
       question: {
-        q: "Olee otú nwa akwụkwọ ma ọ bụ onye nkuzi kwesịrị isi gosi ihe ngosi ego e mere maka mmụta?",
+        q: "Olee otú e kwesịrị isi gosi peeji ego e mere maka mmụta?",
         options: [
           "Kọwaa ya nke ọma dị ka ihe mmụta ma ọ bụ nlele",
-          "Kwuo na ọ bụ ụlọ akụ gọọmentị kwadoro n'enweghị ikike",
-          "Leghara nzuzo nọmba ekwentị ndị mmadụ anya"
+          "Kwuo na ọ bụ ụlọ akụ gọọmentị na-enweghị ikike",
+          "Leghara nzuzo data mmadụ anya"
         ],
         answer: 0,
-        explain: "Ọ dị mma! Ikọwa nke ọma na ọ bụ ihe mmụta na-echebe ndị mmadụ ma na-agbaso iwu."
+        explain: "Ọ dị mma! Ikọwa nke ọma na ọ bụ ihe mmụta na-echebe ndị mmadụ."
       }
     },
     yo: {
-      title: "5. Òfin, Ìpamọ́ Dátà & Ìwà Rere",
-      subtitle: "Títẹ̀lé òfin pẹpẹ, ààbò dátà, àti àfihàn tó ṣe kedere",
-      points: [
-        "Bọ̀wọ̀ fún òfin GitHub àti Supabase; má ṣe ojú-òpó ẹ̀tàn.",
-        "Tọ́jú dátà ara ẹni (fóònù, ímeèlì, bánkì) pẹ̀lú ààbò tó pọ̀.",
-        "Fi hàn gbangba pé àfihàn ìṣúná fún ìdánilẹ́kọ̀ọ́ ni."
+      pill: "5. Òfin & Ìwà",
+      title: "Apá 5: Òfin, Ìpamọ́ Dátà & Ìwà Rere",
+      subtitle: "Tẹ̀lé òfin pẹpẹ, dáàbò bo dátà ara ẹni, kí o sì ṣe àfihàn kedere",
+      bullets: [
+        "Tẹ̀lé òfin GitHub àti Supabase; má ṣe ojú-òpó ẹ̀tàn.",
+        "Dáàbò bo nọ́ńbà fóònù, ímeèlì, àti àkọsílẹ̀ bánkì.",
+        "Fi hàn kedere pé àfihàn ìṣúná fún ìdánilẹ́kọ̀ọ́ ni."
       ],
-      segments: [
-        "Káàbọ̀ sí Nọ́ńbà karùn-ún, èyí tí í ṣe ẹ̀kọ́ ìkẹyìn wa. Àwọn olùṣẹ̀dá kóòdù rere máa ń tẹ̀lé òfin kóòdù àti òfin ayé. Máa tẹ̀lé ìlànà GitHub àti Supabase nígbà gbogbo kí o má sì ṣe ohun ìtànjẹ.",
-        "Nígbà tí ètò bá ń gba àlàyé ara ẹni bíi nọ́ńbà fóònù, ímeèlì, tàbí àkọsílẹ̀ bánkì, òfin ààbò dátà béèrè fún ìṣọ́ra àti òtítọ́.",
-        "Bákan náà, àfihàn ìṣúná tàbí ìyá owó tí a ṣe fún kíláàsì gbọ́dọ̀ jẹ́ mímọ̀ gẹ́gẹ́ bí àṣà ìdánilẹ́kọ̀ọ́—kì í ṣe bánkì tí a fọwọ́ sí. A kú iṣẹ́ nínú lekkxygold tutor!"
+      lines: [
+        "Káàbọ̀ sí Apá karùn-ún, apá ìkẹyìn webinar ìṣẹ́jú márùn-ún wa. Máa tẹ̀lé òfin GitHub àti Supabase.",
+        "Bọ̀wọ̀ fún ààbò dátà nígbà tí o bá ń gba nọ́ńbà fóònù, ímeèlì, tàbí àlàyé bánkì.",
+        "Fi hàn gbangba pé àfihàn ìṣúná fún ìdánilẹ́kọ̀ọ́ ni.",
+        "A dúpẹ́ fún kíkópa nínú lekkxygold tutor! Dáhùn ìbéèrè ìkẹyìn láti parí."
       ],
       question: {
-        q: "Báwo ni akẹ́kọ̀ọ́ tàbí olùkọ́ ṣe yẹ kí ó fi àfihàn ìṣúná tí a ṣe fún ìdánilẹ́kọ̀ọ́ hàn?",
+        q: "Báwo ni a ṣe yẹ kí a ṣe àfihàn ojú-òpó ìṣúná tí a ṣe fún ìdánilẹ́kọ̀ọ́?",
         options: [
-          "Kí ó fi hàn kedere pé iṣẹ́ ìdánilẹ́kọ̀ọ́ tàbí àfihàn ni",
-          "Kí ó sọ pé bánkì gidi ni láì ní àṣẹ ìjọba",
-          "Kí ó ṣàì bikita fún ààbò nọ́ńbà fóònù ènìyàn"
+          "Kí a fi hàn kedere pé ìdánilẹ́kọ̀ọ́ tàbí àfihàn ni",
+          "Kí a sọ pé bánkì gidi ni láì ní àṣẹ",
+          "Kí a ṣàì dáàbò bo dátà olùlò"
         ],
         answer: 0,
-        explain: "Ó dára púpọ̀! Fífi hàn kedere pé ìdánilẹ́kọ̀ọ́ ni ń dáàbò bo àwọn ènìyàn tí ó sì ń tẹ̀lé òfin."
+        explain: "Ó dára púpọ̀! Fífi hàn kedere pé ìdánilẹ́kọ̀ọ́ ni ń dáàbò bo àwọn ènìyàn."
       }
     }
   }
 ];
 
-let currentSceneIndex = 0;
+let currentPartIndex = 0;
 let currentLang = "en";
 let isPlaying = false;
 let isPaused = false;
-let isQuizMode = false;
+let isQuizOpen = false;
 let quizAnswered = false;
-let animFrameId = null;
 
-// Timer tracking (up to 300 seconds = 5:00 per lesson number)
-let elapsedLessonSeconds = 0;
-let lastTickTime = performance.now();
-let speechSegmentIndex = 0;
+let totalElapsedSec = 0;
+let lastFrameTime = performance.now();
+let lastLineSlot = -1;
 let availableVoices = [];
 
-// Video recording state
-let mediaRecorder = null;
-let recordedChunks = [];
-let isRecording = false;
-
-function formatTimer(sec) {
-  const clamped = Math.max(0, Math.min(MAX_LESSON_SECONDS, Math.floor(sec)));
-  const mins = String(Math.floor(clamped / 60)).padStart(2, "0");
-  const secs = String(clamped % 60).padStart(2, "0");
-  const maxMins = String(Math.floor(MAX_LESSON_SECONDS / 60)).padStart(2, "0");
-  return `${mins}:${secs} / ${maxMins}:00`;
+function formatTime(sec) {
+  const safe = Math.max(0, Math.min(TOTAL_WEBINAR_SEC, Math.floor(sec)));
+  const m = String(Math.floor(safe / 60)).padStart(2, "0");
+  const s = String(safe % 60).padStart(2, "0");
+  return `${m}:${s}`;
 }
 
-function getLangPrefix(lang) {
-  if (lang === "ig") return "ig";
-  if (lang === "yo") return "yo";
-  return "en";
+function getCurrentLineText() {
+  const lines = PARTS[currentPartIndex][currentLang].lines;
+  const partElapsed = totalElapsedSec - currentPartIndex * PART_DURATION_SEC;
+  const idx = Math.max(0, Math.floor(partElapsed / LINE_INTERVAL_SEC)) % lines.length;
+  return lines[idx];
+}
+
+function scoreVoice(voice, lang) {
+  let score = 0;
+  const name = (voice.name || "").toLowerCase();
+  const vLang = (voice.lang || "").toLowerCase();
+
+  if (vLang.startsWith(lang)) score += 50;
+  if (lang === "en" && vLang.includes("ng")) score += 20;
+  if (lang === "en" && (vLang.includes("gb") || vLang.includes("us"))) score += 10;
+
+  // Prefer natural/neural/enhanced voices when available
+  if (name.includes("natural") || name.includes("neural") || name.includes("online") || name.includes("enhanced")) {
+    score += 25;
+  }
+  return score;
 }
 
 function populateVoices() {
-  availableVoices = window.speechSynthesis.getVoices();
-  voiceSelect.innerHTML = "";
+  if (!("speechSynthesis" in window)) return;
+  try {
+    availableVoices = window.speechSynthesis.getVoices() || [];
+    voiceSelect.innerHTML = "";
 
-  if (!availableVoices.length) {
-    const opt = document.createElement("option");
-    opt.textContent = "Default System Voice";
-    opt.value = "";
-    voiceSelect.appendChild(opt);
-    return;
-  }
-
-  const targetPrefix = getLangPrefix(currentLang);
-  let bestIdx = 0;
-
-  availableVoices.forEach((voice, idx) => {
-    const opt = document.createElement("option");
-    opt.textContent = `${voice.name} (${voice.lang})`;
-    opt.value = String(idx);
-    if (voice.lang.toLowerCase().startsWith(targetPrefix) && bestIdx === 0) {
-      bestIdx = idx;
+    if (!availableVoices.length) {
+      const opt = document.createElement("option");
+      opt.textContent = "Default Speaker Voice";
+      opt.value = "";
+      voiceSelect.appendChild(opt);
+      return;
     }
-    voiceSelect.appendChild(opt);
-  });
 
-  voiceSelect.value = String(bestIdx);
+    let bestIdx = 0;
+    let bestScore = -1;
+
+    availableVoices.forEach((v, i) => {
+      const opt = document.createElement("option");
+      opt.textContent = `${v.name} (${v.lang})`;
+      opt.value = String(i);
+      voiceSelect.appendChild(opt);
+
+      const s = scoreVoice(v, currentLang);
+      if (s > bestScore) {
+        bestScore = s;
+        bestIdx = i;
+      }
+    });
+
+    voiceSelect.value = String(bestIdx);
+  } catch (_) {}
 }
 
 populateVoices();
-if (speechSynthesis.onvoiceschanged !== undefined) {
+if ("speechSynthesis" in window && speechSynthesis.onvoiceschanged !== undefined) {
   speechSynthesis.onvoiceschanged = populateVoices;
 }
 
-function applyLanguageLabels() {
-  const lbl = UI_LABELS[currentLang];
-  playBtn.textContent = lbl.play;
-  pauseBtn.textContent = isPaused ? lbl.resume : lbl.pause;
-  prevBtn.textContent = lbl.prev;
-  nextBtn.textContent = lbl.next;
-  restartBtn.textContent = lbl.restart;
-  quizNowBtn.textContent = lbl.quizBtn;
-  recordBtn.textContent = isRecording ? lbl.stopRecord : lbl.record;
-  sceneCounter.textContent = `${lbl.counterPrefix} ${currentSceneIndex + 1} / ${LESSONS.length}`;
-  quizHeader.textContent = lbl.quizHeader;
-  if (!isPlaying && elapsedLessonSeconds === 0 && !isQuizMode) {
-    statusNote.textContent = lbl.readyNote;
-  }
-}
-
-function stopSpeech() {
-  if ("speechSynthesis" in window) {
+function speakText(text) {
+  readerText.textContent = text;
+  if (!("speechSynthesis" in window)) return;
+  try {
     window.speechSynthesis.cancel();
-  }
-}
-
-function speakText(text, onDone) {
-  stopSpeech();
-  if (!("speechSynthesis" in window)) {
-    setTimeout(() => {
-      if (onDone) onDone();
-    }, 3500);
-    return;
-  }
-
-  const utterance = new SpeechSynthesisUtterance(text);
-  const selectedIndex = parseInt(voiceSelect.value, 10);
-  if (!Number.isNaN(selectedIndex) && availableVoices[selectedIndex]) {
-    utterance.voice = availableVoices[selectedIndex];
-  }
-  if (currentLang === "ig") utterance.lang = "ig-NG";
-  else if (currentLang === "yo") utterance.lang = "yo-NG";
-  else utterance.lang = "en-NG";
-
-  utterance.rate = 0.96;
-  utterance.pitch = 1.0;
-
-  utterance.onend = () => {
-    if (onDone) onDone();
-  };
-  utterance.onerror = () => {
-    if (onDone) onDone();
-  };
-
-  window.speechSynthesis.speak(utterance);
-}
-
-function speakLessonSegment() {
-  if (!isPlaying || isPaused || isQuizMode) return;
-  const content = LESSONS[currentSceneIndex][currentLang];
-  const segments = content.segments;
-  const text = segments[speechSegmentIndex % segments.length];
-
-  speakText(text, () => {
-    if (!isPlaying || isPaused || isQuizMode) return;
-    speechSegmentIndex += 1;
-    // Continue speaking segments until the 5-minute timer finishes
-    if (elapsedLessonSeconds < MAX_LESSON_SECONDS) {
-      speakLessonSegment();
+    const utter = new SpeechSynthesisUtterance(text);
+    const idx = parseInt(voiceSelect.value, 10);
+    if (!Number.isNaN(idx) && availableVoices[idx]) {
+      utter.voice = availableVoices[idx];
     }
+    const rateVal = parseFloat(paceSelect.value);
+    utter.rate = Number.isNaN(rateVal) ? 0.92 : rateVal;
+    utter.pitch = 1.02;
+    window.speechSynthesis.speak(utter);
+  } catch (_) {}
+}
+
+function renderPartPills() {
+  partPills.innerHTML = "";
+  PARTS.forEach((p, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "part-pill" + (idx === currentPartIndex ? " active" : "");
+    btn.textContent = p[currentLang].pill;
+    btn.addEventListener("click", () => {
+      goToPart(idx, isPlaying && !isPaused);
+    });
+    partPills.appendChild(btn);
   });
 }
 
-function enterQuizMode() {
-  isQuizMode = true;
-  quizAnswered = false;
-  stopSpeech();
+function syncUI() {
+  const t = LABELS[currentLang];
+  playBtn.textContent = t.play;
+  pauseBtn.textContent = isPaused ? t.resume : t.pause;
+  speakBtn.textContent = t.speak;
+  prevBtn.textContent = t.prev;
+  nextBtn.textContent = t.next;
+  restartBtn.textContent = t.restart;
+  quizBtn.textContent = t.quiz;
+  readerLabel.textContent = t.readerLabel;
+  footerNote.textContent = t.note;
 
-  const content = LESSONS[currentSceneIndex][currentLang];
-  const lbl = UI_LABELS[currentLang];
-  const qData = content.question;
+  partCounter.textContent = `${t.part} ${currentPartIndex + 1} / ${PARTS.length}`;
+  const remaining = Math.max(0, TOTAL_WEBINAR_SEC - Math.floor(totalElapsedSec));
+  totalTimerText.textContent = `${formatTime(remaining)} / 05:00`;
 
-  quizPanel.classList.remove("hidden");
-  quizHeader.textContent = `${lbl.quizHeader} ${currentSceneIndex + 1}`;
-  quizQuestion.textContent = qData.q;
-  quizFeedback.textContent = "";
-  continueNextBtn.style.display = "none";
-  quizOptions.innerHTML = "";
+  playBtn.disabled = isPlaying && !isPaused && !isQuizOpen;
+  pauseBtn.disabled = !isPlaying;
+  prevBtn.disabled = currentPartIndex === 0;
+  nextBtn.disabled = currentPartIndex === PARTS.length - 1;
 
-  qData.options.forEach((optText, idx) => {
-    const btn = document.createElement("button");
-    btn.className = "option-btn";
-    btn.textContent = optText;
-    btn.addEventListener("click", () => handleAnswerSelect(idx));
-    quizOptions.appendChild(btn);
-  });
+  renderPartPills();
 
-  if (isPlaying && !isPaused) {
-    speakText(`${qData.q}. ${qData.options.join(", ")}`);
+  if (!isQuizOpen) {
+    readerText.textContent = getCurrentLineText();
   }
 }
 
-function handleAnswerSelect(selectedIdx) {
+function openQuiz() {
+  isQuizOpen = true;
+  quizAnswered = false;
+  if ("speechSynthesis" in window) {
+    try { window.speechSynthesis.cancel(); } catch (_) {}
+  }
+
+  const t = LABELS[currentLang];
+  const qData = PARTS[currentPartIndex][currentLang].question;
+
+  quizBox.classList.remove("hidden");
+  quizTag.textContent = `${t.quizTag} ${currentPartIndex + 1} / ${PARTS.length}`;
+  quizQ.textContent = qData.q;
+  quizAns.textContent = "";
+  nextPartBtn.style.display = "none";
+  quizOpts.innerHTML = "";
+
+  qData.options.forEach((opt, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "opt-btn";
+    btn.textContent = opt;
+    btn.addEventListener("click", () => handleAnswer(idx));
+    quizOpts.appendChild(btn);
+  });
+
+  syncUI();
+  speakText(qData.q);
+}
+
+function handleAnswer(selectedIdx) {
   if (quizAnswered) return;
   quizAnswered = true;
 
-  const content = LESSONS[currentSceneIndex][currentLang];
-  const lbl = UI_LABELS[currentLang];
-  const qData = content.question;
-  const optionButtons = quizOptions.querySelectorAll(".option-btn");
+  const t = LABELS[currentLang];
+  const qData = PARTS[currentPartIndex][currentLang].question;
+  const optionButtons = quizOpts.querySelectorAll(".opt-btn");
 
   optionButtons.forEach((btn, idx) => {
     btn.disabled = true;
-    if (idx === qData.answer) {
-      btn.classList.add("correct");
-    } else if (idx === selectedIdx && selectedIdx !== qData.answer) {
-      btn.classList.add("wrong");
-    }
+    if (idx === qData.answer) btn.classList.add("correct");
+    else if (idx === selectedIdx && selectedIdx !== qData.answer) btn.classList.add("wrong");
   });
 
-  quizFeedback.textContent = qData.explain;
-  continueNextBtn.style.display = "inline-block";
-  continueNextBtn.textContent =
-    currentSceneIndex < LESSONS.length - 1 ? lbl.nextNumberBtn : lbl.finishAllBtn;
+  quizAns.textContent = qData.explain;
+  nextPartBtn.style.display = "inline-block";
+  nextPartBtn.textContent =
+    currentPartIndex < PARTS.length - 1 ? t.nextPart : t.finishAll;
 
-  if (isPlaying && !isPaused) {
-    speakText(qData.explain);
-  }
+  speakText(qData.explain);
 }
 
-function loadLessonNumber(index, autoPlay) {
-  currentSceneIndex = Math.max(0, Math.min(index, LESSONS.length - 1));
-  elapsedLessonSeconds = 0;
-  speechSegmentIndex = 0;
-  lastTickTime = performance.now();
-  isQuizMode = false;
+function goToPart(index, shouldPlay) {
+  currentPartIndex = Math.max(0, Math.min(index, PARTS.length - 1));
+  totalElapsedSec = currentPartIndex * PART_DURATION_SEC;
+  lastLineSlot = -1;
+  lastFrameTime = performance.now();
+  isQuizOpen = false;
   quizAnswered = false;
-  quizPanel.classList.add("hidden");
-  stopSpeech();
+  quizBox.classList.add("hidden");
 
-  applyLanguageLabels();
-  timerDisplay.textContent = formatTimer(0);
-  updateButtons();
+  if ("speechSynthesis" in window) {
+    try { window.speechSynthesis.cancel(); } catch (_) {}
+  }
 
-  if (autoPlay) {
-    isPlaying = true;
-    isPaused = false;
-    updateButtons();
-    speakLessonSegment();
+  isPlaying = Boolean(shouldPlay);
+  isPaused = false;
+  syncUI();
+
+  if (isPlaying) {
+    lastLineSlot = Math.floor(totalElapsedSec / LINE_INTERVAL_SEC);
+    speakText(getCurrentLineText());
   }
 }
 
-function updateButtons() {
-  playBtn.disabled = isPlaying && !isPaused && !isQuizMode;
-  pauseBtn.disabled = !isPlaying;
-  pauseBtn.textContent = isPaused ? UI_LABELS[currentLang].resume : UI_LABELS[currentLang].pause;
-  prevBtn.disabled = currentSceneIndex === 0;
-  nextBtn.disabled = currentSceneIndex === LESSONS.length - 1;
-}
-
-function drawRoundedBox(x, y, w, h, r, fillStyle, strokeStyle) {
+function fillRoundRect(x, y, w, h, r, fillColor, strokeColor) {
+  const radius = Math.min(r, w / 2, h / 2);
   ctx.beginPath();
-  ctx.roundRect(x, y, w, h, r);
-  if (fillStyle) {
-    ctx.fillStyle = fillStyle;
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + w - radius, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+  ctx.lineTo(x + w, y + h - radius);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+  ctx.lineTo(x + radius, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+
+  if (fillColor) {
+    ctx.fillStyle = fillColor;
     ctx.fill();
   }
-  if (strokeStyle) {
-    ctx.strokeStyle = strokeStyle;
-    ctx.lineWidth = 2;
+  if (strokeColor) {
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = 2.5;
     ctx.stroke();
   }
 }
 
-function drawDiagramPanel(type, elapsedSec) {
-  const px = 770;
-  const py = 175;
-  const pw = 450;
-  const ph = 420;
-  const lbl = UI_LABELS[currentLang];
+function drawWrappedText(text, x, y, maxWidth, lineHeight) {
+  const words = text.split(" ");
+  let line = "";
+  let currY = y;
 
-  drawRoundedBox(px, py, pw, ph, 18, "rgba(18, 22, 34, 0.92)", "rgba(212, 175, 55, 0.3)");
+  for (let i = 0; i < words.length; i++) {
+    const testLine = line ? `${line} ${words[i]}` : words[i];
+    if (ctx.measureText(testLine).width > maxWidth && line) {
+      ctx.fillText(line, x, currY);
+      line = words[i];
+      currY += lineHeight;
+    } else {
+      line = testLine;
+    }
+  }
+  if (line) {
+    ctx.fillText(line, x, currY);
+  }
+}
 
-  const pulse = 0.5 + 0.5 * Math.sin(elapsedSec * 3);
+function drawPresenterAndWaveform(cx, cy, tSec, speakingActive) {
+  const bob = speakingActive ? Math.sin(tSec * 5.5) * 3 : 0;
+  const mouthOpen = speakingActive ? Math.abs(Math.sin(tSec * 9.5)) * 7 + 2 : 2;
+
+  // Presenter ring & avatar
+  ctx.strokeStyle = speakingActive ? "#f5d061" : "#64748b";
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy + bob, 34, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.fillStyle = "#1e293b";
+  ctx.beginPath();
+  ctx.arc(cx, cy + bob, 30, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(cx - 10, cy - 6 + bob, 3.8, 0, Math.PI * 2);
+  ctx.arc(cx + 10, cy - 6 + bob, 3.8, 0, Math.PI * 2);
+  ctx.fill();
 
   ctx.fillStyle = "#f5d061";
-  ctx.font = "bold 17px system-ui, sans-serif";
-  ctx.fillText(lbl.diagramTitle, px + 24, py + 38);
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + 10 + bob, 8, mouthOpen / 2, 0, 0, Math.PI * 2);
+  ctx.fill();
 
-  if (type === "hosting" || type === "architecture") {
-    drawRoundedBox(px + 30, py + 70, 390, 74, 12, "#0b101b", "#38bdf8");
-    ctx.fillStyle = "#e0f2fe";
-    ctx.font = "bold 16px system-ui, sans-serif";
-    ctx.fillText("1. Student Browser", px + 48, py + 102);
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "13px system-ui, sans-serif";
-    ctx.fillText("Displays screen & user session", px + 48, py + 125);
+  // Live audio bars next to presenter
+  const bars = 5;
+  for (let i = 0; i < bars; i++) {
+    const amp = speakingActive
+      ? 8 + Math.abs(Math.sin(tSec * 8 + i * 1.1)) * 22
+      : 6;
+    const bx = cx - 86 + i * 9;
+    const by = cy - amp / 2;
+    ctx.fillStyle = speakingActive ? "#38bdf8" : "#475569";
+    ctx.fillRect(bx, by, 5, amp);
+  }
+}
 
-    drawRoundedBox(px + 30, py + 178, 390, 74, 12, "#0b101b", "#f5d061");
-    ctx.fillStyle = "#fef3c7";
-    ctx.font = "bold 16px system-ui, sans-serif";
-    ctx.fillText("2. GitHub Pages", px + 48, py + 210);
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "13px system-ui, sans-serif";
-    ctx.fillText("Serves HTML, CSS & JavaScript", px + 48, py + 233);
+function drawWebinarSlideVisual(visualType, tSec) {
+  const bx = 770;
+  const by = 175;
+  const bw = 450;
+  const bh = 415;
 
-    drawRoundedBox(px + 30, py + 286, 390, 88, 12, "#0b101b", `rgba(52, 211, 153, ${0.55 + pulse * 0.45})`);
-    ctx.fillStyle = "#d1fae5";
-    ctx.font = "bold 16px system-ui, sans-serif";
-    ctx.fillText("3. Supabase Cloud", px + 48, py + 318);
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "13px system-ui, sans-serif";
-    ctx.fillText("Auth, Postgres tables & RLS rules", px + 48, py + 342);
+  fillRoundRect(bx, by, bw, bh, 18, "rgba(17, 24, 39, 0.95)", "rgba(245, 208, 97, 0.4)");
+
+  ctx.fillStyle = "#fde68a";
+  ctx.font = "bold 18px system-ui, sans-serif";
+  ctx.fillText("WEBINAR VISUAL STAGE", bx + 24, by + 38);
+
+  const pulse = 0.5 + 0.5 * Math.sin(tSec * 4);
+
+  if (visualType === "hosting" || visualType === "architecture") {
+    fillRoundRect(bx + 28, by + 65, 394, 78, 12, "#090e1a", "#38bdf8");
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 18px system-ui, sans-serif";
+    ctx.fillText("1. Attendee Browser", bx + 46, by + 98);
+    ctx.fillStyle = "#cbd5e1";
+    ctx.font = "15px system-ui, sans-serif";
+    ctx.fillText("Loads UI & auth session", bx + 46, by + 124);
+
+    const dotX = bx + 80 + ((tSec * 130) % 240);
+    ctx.fillStyle = "#f5d061";
+    ctx.beginPath();
+    ctx.arc(dotX, by + 160, 7, 0, Math.PI * 2);
+    ctx.fill();
+
+    fillRoundRect(bx + 28, by + 176, 394, 78, 12, "#090e1a", "#f5d061");
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 18px system-ui, sans-serif";
+    ctx.fillText("2. GitHub Pages", bx + 46, by + 209);
+    ctx.fillStyle = "#cbd5e1";
+    ctx.font = "15px system-ui, sans-serif";
+    ctx.fillText("Delivers HTML, CSS & JS", bx + 46, by + 235);
+
+    fillRoundRect(
+      bx + 28,
+      by + 288,
+      394,
+      86,
+      12,
+      "#090e1a",
+      `rgba(52, 211, 153, ${0.55 + pulse * 0.45})`
+    );
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 18px system-ui, sans-serif";
+    ctx.fillText("3. Supabase Cloud", bx + 46, by + 321);
+    ctx.fillStyle = "#cbd5e1";
+    ctx.font = "15px system-ui, sans-serif";
+    ctx.fillText("Auth, Postgres & RLS rules", bx + 46, by + 347);
   } else {
     const cards =
-      type === "structure"
+      visualType === "structure"
         ? [
-            { top: "Login vs. App View", sub: "Separate screens clearly", color: "#f5d061" },
-            { top: "UI vs. Data Code", sub: "Easy to read and maintain", color: "#38bdf8" },
-            { top: "Tables + Timestamps", sub: "profiles & transactions", color: "#34d399" }
+            { top: "Login vs. Dashboard", sub: "Clear view separation", color: "#f5d061" },
+            { top: "UI & Data Code", sub: "Clean & maintainable", color: "#38bdf8" },
+            { top: "Tables & Dates", sub: "profiles & transactions", color: "#34d399" }
           ]
-        : type === "security"
+        : visualType === "security"
         ? [
-            { top: "Row Level Security", sub: "Protect each user's rows", color: "#f87171" },
-            { top: "Safe Public Key", sub: "Never leak secret keys", color: "#f5d061" },
-            { top: "Server Validation", sub: "Protect critical actions", color: "#34d399" }
+            { top: "Row Level Security", sub: "Protects user rows", color: "#f87171" },
+            { top: "Public Anon Key", sub: "Never leak secret keys", color: "#f5d061" },
+            { top: "Server Rules", sub: "Protect critical logic", color: "#34d399" }
           ]
         : [
-            { top: "Platform Guidelines", sub: "Follow GitHub & Supabase", color: "#f5d061" },
-            { top: "Privacy Protection", sub: "Phone, email & bank data", color: "#38bdf8" },
-            { top: "Clear Demo Label", sub: "Educational practice notice", color: "#c084fc" }
+            { top: "Platform Rules", sub: "Follow GitHub & Supabase", color: "#f5d061" },
+            { top: "Data Privacy", sub: "Phone, email & bank care", color: "#38bdf8" },
+            { top: "Educational Notice", sub: "Label practice apps clearly", color: "#c084fc" }
           ];
 
     cards.forEach((c, idx) => {
-      const by = py + 72 + idx * 106;
-      drawRoundedBox(px + 30, by, 390, 82, 12, "#0b101b", c.color);
-      ctx.fillStyle = "#f8fafc";
-      ctx.font = "bold 17px system-ui, sans-serif";
-      ctx.fillText(c.top, px + 48, by + 34);
+      const yPos = by + 68 + idx * 106;
+      const shift = Math.sin(tSec * 2.5 + idx) * 4;
+      fillRoundRect(bx + 28 + shift, yPos, 394, 84, 12, "#090e1a", c.color);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 18px system-ui, sans-serif";
+      ctx.fillText(c.top, bx + 46 + shift, yPos + 34);
       ctx.fillStyle = "#cbd5e1";
-      ctx.font = "14px system-ui, sans-serif";
-      ctx.fillText(c.sub, px + 48, by + 60);
+      ctx.font = "15px system-ui, sans-serif";
+      ctx.fillText(c.sub, bx + 46 + shift, yPos + 62);
     });
   }
 }
 
-function renderFrame(now) {
-  const dt = (now - lastTickTime) / 1000;
-  lastTickTime = now;
+function render(now) {
+  const dt = Math.min(0.25, (now - lastFrameTime) / 1000);
+  lastFrameTime = now;
 
-  if (isPlaying && !isPaused && !isQuizMode) {
-    elapsedLessonSeconds = Math.min(MAX_LESSON_SECONDS, elapsedLessonSeconds + dt);
-    timerDisplay.textContent = formatTimer(elapsedLessonSeconds);
+  if (isPlaying && !isPaused && !isQuizOpen) {
+    totalElapsedSec = Math.min(TOTAL_WEBINAR_SEC, totalElapsedSec + dt);
 
-    if (elapsedLessonSeconds >= MAX_LESSON_SECONDS) {
-      enterQuizMode();
+    const partEndSec = (currentPartIndex + 1) * PART_DURATION_SEC;
+    if (totalElapsedSec >= partEndSec) {
+      totalElapsedSec = partEndSec;
+      openQuiz();
+    } else {
+      const slot = Math.floor(totalElapsedSec / LINE_INTERVAL_SEC);
+      if (slot !== lastLineSlot) {
+        lastLineSlot = slot;
+        const line = getCurrentLineText();
+        readerText.textContent = line;
+        speakText(line);
+      }
+      const remaining = Math.max(0, TOTAL_WEBINAR_SEC - Math.floor(totalElapsedSec));
+      totalTimerText.textContent = `${formatTime(remaining)} / 05:00`;
     }
   }
 
-  const lesson = LESSONS[currentSceneIndex];
-  const content = lesson[currentLang];
+  const partObj = PARTS[currentPartIndex];
+  const langObj = partObj[currentLang];
+  const speakingNow = isPlaying && !isPaused && !isQuizOpen;
 
-  const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-  grad.addColorStop(0, "#090c14");
-  grad.addColorStop(1, "#141927");
-  ctx.fillStyle = grad;
+  const bg = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  bg.addColorStop(0, "#080b14");
+  bg.addColorStop(1, "#131a2c");
+  ctx.fillStyle = bg;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  const remaining = Math.max(0, TOTAL_WEBINAR_SEC - Math.floor(totalElapsedSec));
   ctx.fillStyle = "#f5d061";
-  ctx.font = "bold 16px system-ui, sans-serif";
+  ctx.font = "bold 18px system-ui, sans-serif";
   ctx.fillText(
-    `LEKKXYGOLD TUTOR • ${currentLang.toUpperCase()} • ${formatTimer(elapsedLessonSeconds)}`,
-    60,
-    62
+    `LEKKXYGOLD TUTOR WEBINAR • ${currentLang.toUpperCase()} • ${formatTime(remaining)} LEFT (5:00)`,
+    56,
+    56
   );
 
-  ctx.fillStyle = "#94a3b8";
-  ctx.font = "15px system-ui, sans-serif";
-  ctx.fillText(`No. ${currentSceneIndex + 1} / ${LESSONS.length}`, canvas.width - 140, 62);
+  drawPresenterAndWaveform(1180, 64, totalElapsedSec, speakingNow);
 
   ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 34px system-ui, sans-serif";
-  ctx.fillText(content.title, 60, 122);
+  ctx.font = "bold 36px system-ui, sans-serif";
+  ctx.fillText(langObj.title, 56, 118);
 
-  ctx.fillStyle = "#d4af37";
-  ctx.font = "20px system-ui, sans-serif";
-  ctx.fillText(content.subtitle, 60, 156);
+  ctx.fillStyle = "#fde68a";
+  ctx.font = "22px system-ui, sans-serif";
+  ctx.fillText(langObj.subtitle, 56, 152);
 
-  drawRoundedBox(60, 175, 680, 420, 18, "rgba(15, 23, 42, 0.78)", "rgba(255, 255, 255, 0.1)");
+  fillRoundRect(56, 175, 685, 415, 18, "rgba(15, 23, 42, 0.88)", "rgba(255, 255, 255, 0.14)");
 
-  content.points.forEach((pt, idx) => {
-    const reveal = Math.min(1, Math.max(0, (elapsedLessonSeconds - idx * 0.6) * 2));
-    ctx.save();
-    ctx.globalAlpha = reveal;
-    const yPos = 235 + idx * 105;
+  langObj.bullets.forEach((bText, i) => {
+    const yBase = 235 + i * 110;
+    const bounce = speakingNow ? Math.sin(totalElapsedSec * 3 + i) * 3 : 0;
 
     ctx.fillStyle = "#f5d061";
     ctx.beginPath();
-    ctx.arc(96, yPos - 6, 8, 0, Math.PI * 2);
+    ctx.arc(92, yBase - 6 + bounce, 9, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = "#f1f5f9";
-    ctx.font = "20px system-ui, sans-serif";
-    ctx.fillText(pt, 120, yPos);
-    ctx.restore();
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 23px system-ui, sans-serif";
+    drawWrappedText(bText, 116, yBase + bounce, 595, 29);
   });
 
-  drawDiagramPanel(lesson.diagram, elapsedLessonSeconds);
+  drawWebinarSlideVisual(partObj.visual, totalElapsedSec);
 
-  // Progress bar across bottom
-  const progressRatio = elapsedLessonSeconds / MAX_LESSON_SECONDS;
-  drawRoundedBox(60, 610, 1160, 10, 5, "rgba(255,255,255,0.08)", null);
-  drawRoundedBox(60, 610, Math.max(8, 1160 * progressRatio), 10, 5, "#f5d061", null);
+  const ratio = totalElapsedSec / TOTAL_WEBINAR_SEC;
+  fillRoundRect(56, 606, 1164, 12, 6, "rgba(255, 255, 255, 0.1)", null);
+  fillRoundRect(56, 606, Math.max(10, 1164 * ratio), 12, 6, "#f5d061", null);
 
-  drawRoundedBox(60, 630, 1160, 62, 12, "rgba(0, 0, 0, 0.78)", "rgba(212, 175, 55, 0.25)");
-  ctx.fillStyle = "#e2e8f0";
-  ctx.font = "16px system-ui, sans-serif";
-  const activeSegment = content.segments[speechSegmentIndex % content.segments.length];
-  const prefix = isQuizMode ? "❓ Quiz Ready: " : isPlaying && !isPaused ? "🔊 " : "⏸ ";
-  const line = `${prefix}${activeSegment}`;
-  ctx.fillText(line.slice(0, 116) + (line.length > 116 ? "..." : ""), 82, 667);
+  fillRoundRect(56, 628, 1164, 68, 12, "rgba(0, 0, 0, 0.85)", "rgba(245, 208, 97, 0.35)");
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 20px system-ui, sans-serif";
+  const caption = isQuizOpen ? `❓ ${langObj.question.q}` : getCurrentLineText();
+  drawWrappedText(caption, 76, 656, 1124, 24);
 
-  animFrameId = requestAnimationFrame(renderFrame);
-}
-
-// Optional video file recording (.webm)
-function toggleRecording() {
-  if (!isRecording) {
-    if (!canvas.captureStream || typeof MediaRecorder === "undefined") {
-      statusNote.textContent = "Video file recording is not supported in this browser.";
-      return;
-    }
-
-    recordedChunks = [];
-    const stream = canvas.captureStream(30);
-    mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm" });
-
-    mediaRecorder.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) {
-        recordedChunks.push(e.data);
-      }
-    };
-
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(recordedChunks, { type: "video/webm" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `lekkxygold-tutor-no${currentSceneIndex + 1}-${currentLang}.webm`;
-      a.click();
-      URL.revokeObjectURL(url);
-      statusNote.textContent = "Saved video file.";
-    };
-
-    mediaRecorder.start();
-    isRecording = true;
-    applyLanguageLabels();
-    statusNote.textContent = "Recording lesson canvas...";
-
-    if (!isPlaying) {
-      isPlaying = true;
-      isPaused = false;
-      updateButtons();
-      speakLessonSegment();
-    }
-  } else {
-    stopRecordingIfActive();
-  }
-}
-
-function stopRecordingIfActive() {
-  if (isRecording && mediaRecorder && mediaRecorder.state !== "inactive") {
-    isRecording = false;
-    applyLanguageLabels();
-    mediaRecorder.stop();
-  }
+  requestAnimationFrame(render);
 }
 
 playBtn.addEventListener("click", () => {
-  if (isQuizMode) {
-    isQuizMode = false;
-    quizPanel.classList.add("hidden");
+  if (isQuizOpen) {
+    isQuizOpen = false;
+    quizBox.classList.add("hidden");
   }
   if (isPaused) {
     isPaused = false;
     isPlaying = true;
-    lastTickTime = performance.now();
-    if ("speechSynthesis" in window) window.speechSynthesis.resume();
-    updateButtons();
-    speakLessonSegment();
+    lastFrameTime = performance.now();
+    syncUI();
+    speakText(getCurrentLineText());
     return;
   }
   isPlaying = true;
   isPaused = false;
-  lastTickTime = performance.now();
-  updateButtons();
-  speakLessonSegment();
+  lastFrameTime = performance.now();
+  lastLineSlot = Math.floor(totalElapsedSec / LINE_INTERVAL_SEC);
+  syncUI();
+  speakText(getCurrentLineText());
 });
 
 pauseBtn.addEventListener("click", () => {
   if (!isPlaying) return;
   if (!isPaused) {
     isPaused = true;
-    if ("speechSynthesis" in window) window.speechSynthesis.pause();
-    updateButtons();
+    if ("speechSynthesis" in window) {
+      try { window.speechSynthesis.cancel(); } catch (_) {}
+    }
   } else {
     isPaused = false;
-    lastTickTime = performance.now();
-    if ("speechSynthesis" in window) window.speechSynthesis.resume();
-    updateButtons();
-    if (!isQuizMode) speakLessonSegment();
+    lastFrameTime = performance.now();
+    if (!isQuizOpen) speakText(getCurrentLineText());
+  }
+  syncUI();
+});
+
+speakBtn.addEventListener("click", () => {
+  if (isQuizOpen) {
+    speakText(PARTS[currentPartIndex][currentLang].question.q);
+  } else {
+    speakText(getCurrentLineText());
   }
 });
 
 prevBtn.addEventListener("click", () => {
-  const shouldPlay = isPlaying && !isPaused;
-  loadLessonNumber(currentSceneIndex - 1, shouldPlay);
+  goToPart(currentPartIndex - 1, isPlaying && !isPaused);
 });
 
 nextBtn.addEventListener("click", () => {
-  const shouldPlay = isPlaying && !isPaused;
-  loadLessonNumber(currentSceneIndex + 1, shouldPlay);
+  goToPart(currentPartIndex + 1, isPlaying && !isPaused);
 });
 
 restartBtn.addEventListener("click", () => {
-  loadLessonNumber(currentSceneIndex, true);
+  totalElapsedSec = 0;
+  goToPart(0, true);
 });
 
-quizNowBtn.addEventListener("click", () => {
-  enterQuizMode();
+quizBtn.addEventListener("click", () => {
+  openQuiz();
 });
 
-continueNextBtn.addEventListener("click", () => {
-  if (currentSceneIndex < LESSONS.length - 1) {
-    loadLessonNumber(currentSceneIndex + 1, true);
+nextPartBtn.addEventListener("click", () => {
+  if (currentPartIndex < PARTS.length - 1) {
+    goToPart(currentPartIndex + 1, true);
   } else {
-    loadLessonNumber(0, true);
+    totalElapsedSec = 0;
+    goToPart(0, true);
   }
 });
 
 langSelect.addEventListener("change", () => {
   currentLang = langSelect.value;
   populateVoices();
-  applyLanguageLabels();
-
-  if (isQuizMode) {
-    enterQuizMode();
+  syncUI();
+  if (isQuizOpen) {
+    openQuiz();
   } else if (isPlaying && !isPaused) {
-    speakLessonSegment();
+    speakText(getCurrentLineText());
   }
 });
 
-recordBtn.addEventListener("click", toggleRecording);
+paceSelect.addEventListener("change", () => {
+  if (isPlaying && !isPaused && !isQuizOpen) {
+    speakText(getCurrentLineText());
+  }
+});
 
-// Initial setup
-applyLanguageLabels();
-timerDisplay.textContent = formatTimer(0);
-updateButtons();
-animFrameId = requestAnimationFrame(renderFrame);
+syncUI();
+requestAnimationFrame(render);
